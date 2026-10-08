@@ -116,7 +116,11 @@ app.post('/api/paypal/create-order', async (req, res) => {
       body: JSON.stringify({
         intent: 'CAPTURE',
         purchase_units: [{
-          amount: { currency_code: 'USD', value: total.toFixed(2) },
+          amount: {
+            currency_code: 'USD',
+            value: total.toFixed(2),
+            breakdown: { item_total: { currency_code: 'USD', value: total.toFixed(2) } }
+          },
           items: lines.map(line => ({
             name: line.product.name,
             quantity: String(line.quantity),
