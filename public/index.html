@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f7f4">
+  <meta name="description" content="Tell PayPilot what you need. Get a thoughtful shortlist and check out securely with PayPal.">
+  <title>PayPilot — good finds, found for you</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="PayPilot home"><span class="brand-mark">p</span><span>paypilot</span></a>
+    <nav aria-label="Main navigation"><a class="nav-active" href="#discover">Discover</a><a href="#how-it-works">How it works</a></nav>
+    <button class="bag-trigger" id="bag-trigger" type="button" aria-label="Open shopping bag">Bag <span id="bag-count">0</span><span class="bag-glyph">⌑</span></button>
+  </header>
+
+  <main>
+    <section class="hero" id="discover">
+      <div class="hero-copy">
+        <div class="eyebrow"><span>✳</span> A MORE THOUGHTFUL WAY TO SHOP</div>
+        <h1>Good finds.<br><em>Found for you.</em></h1>
+        <p>Skip the endless scroll. Tell us what you have in mind and find something worth keeping.</p>
+        <div class="hero-note"><span class="avatar-row"><i>J</i><i>M</i><i>A</i></span><span>Good choices start with what matters to you</span></div>
+      </div>
+      <div class="hero-art" aria-label="PayPilot shopping bag illustration">
+        <div class="art-disc"></div><div class="art-ring ring-one"></div><div class="art-ring ring-two"></div>
+        <span class="art-star star-one">✳</span><span class="art-star star-two">✦</span><span class="art-star star-three">✧</span>
+        <span class="art-label">A good choice, made easier</span>
+        <div class="bag-shadow"></div><div class="bag-handle"></div><div class="shopping-bag"><span>p</span><i></i></div>
+      </div>
+    </section>
+
+    <section class="shop-layout" id="how-it-works">
+      <aside class="assistant-card">
+        <div class="assistant-title"><div class="assistant-icon">✳</div><div><strong>Your personal shopper</strong><small><span class="online"></span> Here to help you find a fit</small></div><span class="ai-badge">AI POWERED</span></div>
+        <div class="assistant-content">
+          <div class="welcome-message"><span class="bot-dot">✳</span><div><strong>Hey there! What are you shopping for?</strong><p>Tell me what you need, who it’s for, or what you’d like to spend. I’ll narrow things down.</p></div></div>
+          <div class="idea-label">A FEW IDEAS TO GET STARTED</div>
+          <div class="idea-chips">
+            <button type="button" data-ask="A thoughtful gift under $50, preferably something for coffee">A thoughtful gift under $50 <span>↗</span></button>
+            <button type="button" data-ask="Something to make my desk setup better">Something for my desk <span>↗</span></button>
+            <button type="button" data-ask="I need something useful for a weekend trip">Ready for a weekend trip <span>↗</span></button>
+          </div>
+          <div class="conversation" id="conversation" aria-live="polite"></div>
+          <form class="chat-form" id="chat-form"><input id="chat-input" maxlength="1000" placeholder="I’m looking for…" aria-label="Describe what you are shopping for"><button type="submit" aria-label="Send message">↑</button></form>
+          <p class="privacy-note">Your choices stay yours. Nothing is purchased without your say-so.</p>
+        </div>
+      </aside>
+
+      <section class="collection-card" aria-labelledby="collection-title">
+        <div class="collection-heading"><div><div class="eyebrow eyebrow-small">CURATED FOR YOU</div><h2 id="collection-title">Thoughtful picks</h2></div><span class="collection-note" id="collection-note">A few favorites to start</span></div>
+        <div class="category-filters" id="category-filters" aria-label="Filter products"></div>
+        <div class="product-grid" id="product-grid" aria-live="polite"></div>
+        <div class="collection-footer"><span>Small collection. Better choices.</span><button id="see-all" type="button">See all finds <span>→</span></button></div>
+      </section>
+    </section>
+
+    <section class="promise-strip">
+      <div class="promise-icon">✓</div><div class="promise-copy"><strong>You’re always in control</strong><span>Your AI shopper finds options. You choose what goes in your bag and approve every payment with PayPal.</span></div><div class="paypal-wordmark">Pay<span>Pal</span></div>
+    </section>
+  </main>
+
+  <footer><a class="brand brand-footer" href="#"><span class="brand-mark">p</span><span>paypilot</span></a><span>A little less searching. A little more finding.</span><span>Secure sandbox checkout by <b>PayPal</b></span></footer>
+  <div class="toast" id="toast" role="status"></div>
+  <div class="backdrop" id="backdrop" hidden>
+    <section class="bag-drawer" role="dialog" aria-modal="true" aria-labelledby="bag-title">
+      <div class="drawer-heading"><div><div class="eyebrow eyebrow-small">YOUR PICKS</div><h2 id="bag-title">Your bag <small id="drawer-count">(0)</small></h2></div><button type="button" class="close-drawer" id="close-drawer" aria-label="Close bag">×</button></div>
+      <div class="bag-lines" id="bag-lines"></div>
+      <div class="checkout-area"><div class="subtotal"><span>Subtotal</span><strong id="subtotal">$0.00</strong></div><p class="shipping-note">Shipping and taxes are calculated at checkout.</p><div id="paypal-buttons"></div><div class="checkout-hint" id="checkout-hint">Add PayPal sandbox credentials on the server to enable checkout.</div><p class="buyer-control">You review and approve each payment in PayPal. This demo uses sandbox accounts only.</p></div>
+    </section>
+  </div>
+  <script src="/app.js" defer></script>
+</body>
+</html>
