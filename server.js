@@ -36,6 +36,7 @@ async function getPaypalToken() {
   return data.access_token;
 }
 
+app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 app.get('/api/config', (_req, res) => {
   res.json({ paypalClientId: process.env.PAYPAL_CLIENT_ID || '', aiConfigured: Boolean(process.env.OPENAI_API_KEY) });
 });
@@ -153,4 +154,4 @@ app.post('/api/paypal/capture-order', async (req, res) => {
 });
 
 const port = Number(process.env.PORT) || 3000;
-app.listen(port, () => console.log('PayPilot listening on http://localhost:' + port));
+app.listen(port, '0.0.0.0', () => console.log('PayPilot listening on port ' + port));
