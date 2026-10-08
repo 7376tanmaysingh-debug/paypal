@@ -23,9 +23,16 @@ Set `OPENAI_API_KEY` in `.env` to enable natural-language product recommendation
 
 The server creates Orders v2 from its own catalog prices. PayPal captures an order only after the buyer approves it in the PayPal checkout UI. The browser never submits trusted prices, and AI cannot create or approve orders.
 
-## Deploy
+## Deploy to Render
 
-Deploy as a Node web service with build command `npm install` and start command `npm start`. Add the environment variables in your host's secret settings. Use sandbox credentials for judging and demo. The app listens on the port supplied by `PORT`.
+The repository includes a `render.yaml` Blueprint for the PayPilot web service.
+
+1. In Render, choose **New → Blueprint** and connect `7376tanmaysingh-debug/paypal`.
+2. When prompted, enter your PayPal **Sandbox** Client ID and Secret. Render stores these as service environment variables; never commit them to GitHub.
+3. Create the Blueprint and wait for the first deploy. Render provides a public `onrender.com` URL.
+4. Open the URL and test checkout with a PayPal personal sandbox buyer account.
+
+The Blueprint sets the sandbox API base URL and checks `/api/health`. The app listens on Render's supplied port. To use AI recommendations on the hosted app, add `OPENAI_API_KEY` under the service's Environment settings and redeploy. Without it, local catalog matching remains available.
 
 ## Scope
 
