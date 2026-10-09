@@ -21,6 +21,11 @@ const products = [
 function paypalConfigured() {
   return Boolean(process.env.PAYPAL_CLIENT_ID && process.env.PAYPAL_CLIENT_SECRET);
 }
+function aiProvider() {
+  if (process.env.GEMINI_API_KEY) return 'gemini';
+  if (process.env.OPENAI_API_KEY) return 'openai';
+  return '';
+}
 function paypalBase() {
   return (process.env.PAYPAL_BASE_URL || 'https://api-m.sandbox.paypal.com').replace(/\/$/, '');
 }
@@ -101,7 +106,7 @@ async function getPaypalToken() {
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 app.get('/api/config', (_req, res) => {
-  res.json({ paypalClientId: process.env.PAYPAL_CLIENT_ID || '', aiConfigured: Boolean(process.env.OPENAI_API_KEY), channel3Configured: channel3Configured() });
+  res.json({ paypalClientId: process.env.PAYPAL_CLIENT_ID || '', aiConfigured: Boolean(aiProvider()), aiProvider: aiProvider() || null, channel3Configured: channel3Configured() });
 });
 app.get('/api/products', (_req, res) => res.json(products));
 
@@ -119,7 +124,7 @@ app.post('/api/assistant', async (req, res) => {
     }
   }
 
-  if (process.env.OPENAI_API_KEY) {
+  if (aiProvider()) {
     try {
       const curatedCatalog = products.map(product => ({ id: product.id, name: product.name, category: product.category, price: product.price, description: product.description }));
       const liveCatalog = channel3Products.map(product => ({
@@ -136,19 +141,48 @@ app.post('/api/assistant', async (req, res) => {
         'Never claim to purchase, place an order, or handle payment. Ask one short question if you cannot make a sensible match.',
         'Return JSON only with keys reply (string), productIds (array of PayPilot catalog IDs), and channel3Ids (array of Channel3 product IDs). Return no more than 3 IDs in either array.'
       ].join(' ');
-      const response = await fetch('https://api.openai.com/v1/chat/completions', {
-        method: 'POST',
-        headers: { Authorization: 'Bearer ' + process.env.OPENAI_API_KEY, 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
-          temperature: 0.35,
-          response_format: { type: 'json_object' },
-          messages: [{ role: 'system', content: prompt }, { role: 'user', content: message + (Number.isFinite(budget) && budget > 0 ? ' Budget: $' + budget + '.' : '') }]
-        })
-      });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.error && data.error.message || 'AI recommendations are temporarily unavailable.');
-      const parsed = JSON.parse(data.choices[0].message.content);
+      const userText = message + (Number.isFinite(budget) && budget > 0 ? ' Budget: $' + budget + '.' : '');
+      let parsed;
+      if (process.env.GEMINI_API_KEY) {
+        const model = process.env.GEMINI_MODEL || 'gemini-3.5-flash-lite';
+        const response = await fetch('https://generativelanguage.googleapis.com/v1beta/models/' + encodeURIComponent(model) + ':generateContent', {
+          method: 'POST',
+          headers: { 'x-goog-api-key': process.env.GEMINI_API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            systemInstruction: { parts: [{ text: prompt }] },
+            contents: [{ role: 'user', parts: [{ text: userText }] }],
+            generationConfig: {
+              temperature: 0.35,
+              responseMimeType: 'application/json'
+            }
+          }),
+          signal: AbortSignal.timeout(15000)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error && data.error.message || 'Gemini recommendations are temporarily unavailable.');
+        const generatedText = (Array.isArray(data.candidates) ? data.candidates : [])
+          .flatMap(candidate => candidate.content && Array.isArray(candidate.content.parts) ? candidate.content.parts : [])
+          .map(part => part.text || '')
+          .join('')
+          .trim();
+        if (!generatedText) throw new Error('Gemini returned no recommendations.');
+        parsed = JSON.parse(generatedText);
+      } else {
+        const response = await fetch('https://api.openai.com/v1/chat/completions', {
+          method: 'POST',
+          headers: { Authorization: 'Bearer ' + process.env.OPENAI_API_KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            model: process.env.OPENAI_MODEL || 'gpt-4o-mini',
+            temperature: 0.35,
+            response_format: { type: 'json_object' },
+            messages: [{ role: 'system', content: prompt }, { role: 'user', content: userText }]
+          }),
+          signal: AbortSignal.timeout(15000)
+        });
+        const data = await response.json();
+        if (!response.ok) throw new Error(data.error && data.error.message || 'AI recommendations are temporarily unavailable.');
+        parsed = JSON.parse(data.choices[0].message.content);
+      }
       const allowed = new Set(products.map(product => product.id));
       const allowedChannel3 = new Set(channel3Products.map(product => product.id));
       return res.json({

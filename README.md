@@ -14,7 +14,7 @@ cp .env.example .env
 npm start
 ```
 
-Open http://localhost:3000. Without keys, the curated demo catalog and local recommendation fallback run. Set `OPENAI_API_KEY` for AI-assisted recommendations and `CHANNEL3_API_KEY` for live Channel3 product discovery across retailers. Configure PayPal sandbox REST credentials (`PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`) to activate sandbox checkout.
+Open http://localhost:3000. Without keys, the curated demo catalog and local recommendation fallback run. Set `GEMINI_API_KEY` for Gemini AI recommendations (free-tier model default: `gemini-3.5-flash-lite`); OpenAI is also supported through `OPENAI_API_KEY`. Set `CHANNEL3_API_KEY` for live Channel3 product discovery. Configure PayPal sandbox REST credentials (`PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`) to activate sandbox checkout.
 
 ## Demo
 

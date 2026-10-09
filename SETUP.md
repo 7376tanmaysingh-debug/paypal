@@ -12,7 +12,11 @@ The curated catalog and local matching fallback work without API keys. Add optio
 
 ## AI recommendations
 
-Set `OPENAI_API_KEY` in `.env` to enable natural-language product recommendations. The default model is `gpt-4o-mini`; change it with `OPENAI_MODEL`. The server limits recommendations to the curated catalog. If the model request fails, PayPilot falls back to local matching.
+PayPilot supports Gemini and OpenAI server-side. For the free Gemini API tier, create a key in [Google AI Studio](https://aistudio.google.com/app/apikey) and set `GEMINI_API_KEY`; the default model is `gemini-3.5-flash-lite` and can be changed with `GEMINI_MODEL`. Free-tier access has model-specific rate limits, and Google may use free-tier prompts to improve its products.
+
+If both provider keys are set, PayPilot uses Gemini. Otherwise, it uses `OPENAI_API_KEY` (default model `gpt-4o-mini`, configurable with `OPENAI_MODEL`). The assistant may recommend only products returned by PayPilot's catalog and Channel3 search. If AI is not configured or a request fails, PayPilot falls back to local matching.
+
+Keep either provider key on the server; never put it in browser code or commit it to GitHub.
 
 ## Channel3 live product search
 
@@ -40,7 +44,7 @@ The repository includes a `render.yaml` Blueprint for the PayPilot web service.
 3. Create the Blueprint and wait for the first deploy. Render provides a public `onrender.com` URL.
 4. Open the URL and test checkout with a PayPal personal sandbox buyer account.
 
-The Blueprint sets the sandbox API base URL and checks `/api/health`. The app listens on Render's supplied port. To use AI recommendations on the hosted app, add `OPENAI_API_KEY` under the service's Environment settings and redeploy. Without it, local catalog matching remains available. Add `CHANNEL3_API_KEY` there to enable live Channel3 product search.
+The Blueprint sets the sandbox API base URL and checks `/api/health`. The app listens on Render's supplied port. To enable Gemini on the hosted app, add `GEMINI_API_KEY` under the service's **Environment** settings and redeploy. You can optionally set `GEMINI_MODEL`; it defaults to `gemini-3.5-flash-lite`. If you prefer OpenAI, add `OPENAI_API_KEY` and optionally `OPENAI_MODEL`. Without a working AI key, local catalog matching remains available. Add `CHANNEL3_API_KEY` there to enable live Channel3 product search.
 
 ## Scope
 
