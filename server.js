@@ -24,6 +24,69 @@ function paypalConfigured() {
 function paypalBase() {
   return (process.env.PAYPAL_BASE_URL || 'https://api-m.sandbox.paypal.com').replace(/\/$/, '');
 }
+
+function channel3Configured() {
+  return Boolean(process.env.CHANNEL3_API_KEY);
+}
+async function searchChannel3Products(query) {
+  const filters = { availability: ['InStock'] };
+  const budgetMatch = query.match(/\b(?:under|below|up to|less than)\s*\$?\s*(\d+(?:\.\d{1,2})?)/i);
+  if (budgetMatch) filters.price = { max_price: Number(budgetMatch[1]) };
+
+  const response = await fetch('https://api.trychannel3.com/v1/search', {
+    method: 'POST',
+    headers: {
+      'x-api-key': process.env.CHANNEL3_API_KEY,
+      'Content-Type': 'application/json'
+    },
+    body: JSON.stringify({ query: query.slice(0, 300), filters, limit: 8 }),
+    signal: AbortSignal.timeout(12000)
+  });
+  const data = await response.json();
+  if (!response.ok) throw new Error(data.error || data.message || 'Channel3 product search failed.');
+
+  const source = Array.isArray(data) ? data : (Array.isArray(data.products) ? data.products : []);
+  return source.map(product => {
+    const images = Array.isArray(product.images) ? product.images : [];
+    const image = images.find(item => item && item.is_main_image) || images[0] || {};
+    let imageUrl = image.cleaned_url || image.url || '';
+    try {
+      if (new URL(imageUrl).protocol !== 'https:') imageUrl = '';
+    } catch (_error) {
+      imageUrl = '';
+    }
+    const offers = (Array.isArray(product.offers) ? product.offers : [])
+      .filter(offer => {
+        if (!offer || typeof offer.url !== 'string' || !offer.price) return false;
+        const amount = Number(offer.price.amount);
+        if (!Number.isFinite(amount) || amount < 0 || String(offer.availability || '').toLowerCase() === 'outofstock') return false;
+        try {
+          return new URL(offer.url).protocol === 'https:';
+        } catch (_error) {
+          return false;
+        }
+      })
+      .map(offer => ({
+        url: offer.url,
+        domain: String(offer.domain || 'Retailer').slice(0, 80),
+        amount: Number(offer.price.amount),
+        currency: String(offer.price.currency || 'USD').toUpperCase(),
+        availability: String(offer.availability || 'InStock'),
+        commissionRate: Number(offer.max_commission_rate) || 0
+      }))
+      .sort((a, b) => (a.currency === 'USD' ? 0 : 1) - (b.currency === 'USD' ? 0 : 1) || a.amount - b.amount)
+      .slice(0, 3);
+    return {
+      id: String(product.id || '').slice(0, 100),
+      title: String(product.title || 'Product').slice(0, 180),
+      description: String(product.description || '').slice(0, 280),
+      brand: (Array.isArray(product.brands) ? product.brands : []).map(item => item && item.name).filter(Boolean).slice(0, 3).join(', '),
+      category: String(product.category && product.category.title || '').slice(0, 80),
+      imageUrl,
+      offers
+    };
+  }).filter(product => product.id && product.offers.length);
+}
 async function getPaypalToken() {
   const auth = Buffer.from(process.env.PAYPAL_CLIENT_ID + ':' + process.env.PAYPAL_CLIENT_SECRET).toString('base64');
   const response = await fetch(paypalBase() + '/v1/oauth2/token', {
@@ -38,7 +101,7 @@ async function getPaypalToken() {
 
 app.get('/api/health', (_req, res) => res.json({ status: 'ok' }));
 app.get('/api/config', (_req, res) => {
-  res.json({ paypalClientId: process.env.PAYPAL_CLIENT_ID || '', aiConfigured: Boolean(process.env.OPENAI_API_KEY) });
+  res.json({ paypalClientId: process.env.PAYPAL_CLIENT_ID || '', aiConfigured: Boolean(process.env.OPENAI_API_KEY), channel3Configured: channel3Configured() });
 });
 app.get('/api/products', (_req, res) => res.json(products));
 
@@ -47,14 +110,31 @@ app.post('/api/assistant', async (req, res) => {
   const budget = Number(req.body.budget);
   if (!message) return res.status(400).json({ error: 'Tell me what you are looking for first.' });
 
+  let channel3Products = [];
+  if (channel3Configured()) {
+    try {
+      channel3Products = await searchChannel3Products(message);
+    } catch (error) {
+      console.error('Channel3 product search:', error.message);
+    }
+  }
+
   if (process.env.OPENAI_API_KEY) {
     try {
+      const curatedCatalog = products.map(product => ({ id: product.id, name: product.name, category: product.category, price: product.price, description: product.description }));
+      const liveCatalog = channel3Products.map(product => ({
+        id: product.id,
+        title: product.title,
+        brand: product.brand,
+        offers: product.offers.map(offer => ({ retailer: offer.domain, amount: offer.amount, currency: offer.currency }))
+      }));
       const prompt = [
         'You are PayPilot, a concise and thoughtful shopping assistant.',
-        'Recommend only items from this catalog: ' + JSON.stringify(products),
-        'Respect the shopper budget if one is supplied.',
+        'Recommend only products from these two lists. Curated PayPilot products: ' + JSON.stringify(curatedCatalog),
+        'Live Channel3 products and retailer offers: ' + JSON.stringify(liveCatalog),
+        'Respect the shopper budget if one is supplied. Explain briefly why the picks fit.',
         'Never claim to purchase, place an order, or handle payment. Ask one short question if you cannot make a sensible match.',
-        'Return JSON only with keys reply (string) and productIds (array of catalog IDs). Return no more than 3 productIds.'
+        'Return JSON only with keys reply (string), productIds (array of PayPilot catalog IDs), and channel3Ids (array of Channel3 product IDs). Return no more than 3 IDs in either array.'
       ].join(' ');
       const response = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
@@ -70,9 +150,12 @@ app.post('/api/assistant', async (req, res) => {
       if (!response.ok) throw new Error(data.error && data.error.message || 'AI recommendations are temporarily unavailable.');
       const parsed = JSON.parse(data.choices[0].message.content);
       const allowed = new Set(products.map(product => product.id));
+      const allowedChannel3 = new Set(channel3Products.map(product => product.id));
       return res.json({
         reply: String(parsed.reply || 'I found a few options to explore.'),
         productIds: (Array.isArray(parsed.productIds) ? parsed.productIds : []).filter(id => allowed.has(id)).slice(0, 3),
+        channel3Ids: (Array.isArray(parsed.channel3Ids) ? parsed.channel3Ids : []).filter(id => allowedChannel3.has(id)).slice(0, 3),
+        channel3Products,
         source: 'ai'
       });
     } catch (error) {
@@ -89,9 +172,11 @@ app.post('/api/assistant', async (req, res) => {
     .sort((a, b) => b.score - a.score || a.product.price - b.product.price).slice(0, 3);
   res.json({
     reply: matches.length
-      ? 'I matched a few options to your request. Take a look and add only what feels right.'
-      : 'I do not see a close match in this small collection yet. Try audio, coffee, travel, outdoors, or workspace.',
+      ? 'I matched a few options to your request. Take a look and add only what feels right.' + (channel3Products.length ? ' I also found live retailer options below.' : '')
+      : 'I do not see a close match in this small collection yet. Try audio, coffee, travel, outdoors, or workspace.' + (channel3Products.length ? ' I also found live retailer options below.' : ''),
     productIds: matches.map(item => item.product.id),
+    channel3Ids: [],
+    channel3Products,
     source: 'catalog'
   });
 });
