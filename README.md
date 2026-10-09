@@ -14,7 +14,7 @@ cp .env.example .env
 npm start
 ```
 
-Open http://localhost:3000. Without keys, the curated demo catalog and local recommendation fallback run. Set `OPENAI_API_KEY` to enable AI-assisted recommendations. Configure PayPal sandbox REST credentials (`PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`) to activate sandbox checkout.
+Open http://localhost:3000. Without keys, the curated demo catalog and local recommendation fallback run. Set `OPENAI_API_KEY` for AI-assisted recommendations and `CHANNEL3_API_KEY` for live Channel3 product discovery across retailers. Configure PayPal sandbox REST credentials (`PAYPAL_CLIENT_ID` and `PAYPAL_CLIENT_SECRET`) to activate sandbox checkout.
 
 ## Demo
 
@@ -25,4 +25,6 @@ Open http://localhost:3000. Without keys, the curated demo catalog and local rec
 
 The server creates the PayPal order from trusted catalog prices, and captures it only after PayPal reports buyer approval. No AI response can initiate or authorize payment.
 
-See [SETUP.md](SETUP.md) for keys, sandbox accounts, and deployment notes.
+Live Channel3 retailer results link to the retailer and stay separate from PayPilot's curated PayPal demo cart.
+
+See [SETUP.md](SETUP.md) for API keys, sandbox accounts, and deployment notes.
