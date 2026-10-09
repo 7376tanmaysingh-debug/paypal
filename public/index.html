@@ -48,6 +48,7 @@
           <div class="conversation" id="conversation" aria-live="polite"></div>
           <form class="chat-form" id="chat-form"><input id="chat-input" maxlength="1000" placeholder="I’m looking for…" aria-label="Describe what you are shopping for"><button type="submit" aria-label="Send message">↑</button></form>
           <p class="privacy-note">Your choices stay yours. Nothing is purchased without your say-so.</p>
+          <p class="channel3-note" id="channel3-note" hidden>When enabled, your search is sent to Channel3 to find live retailer products.</p>
         </div>
       </aside>
 
@@ -55,6 +56,10 @@
         <div class="collection-heading"><div><div class="eyebrow eyebrow-small">CURATED FOR YOU</div><h2 id="collection-title">Thoughtful picks</h2></div><span class="collection-note" id="collection-note">A few favorites to start</span></div>
         <div class="category-filters" id="category-filters" aria-label="Filter products"></div>
         <div class="product-grid" id="product-grid" aria-live="polite"></div>
+        <section class="channel3-results" id="channel3-results" aria-labelledby="channel3-title" hidden>
+          <div class="channel3-results-heading"><div><div class="eyebrow eyebrow-small">LIVE PRODUCT SEARCH</div><h3 id="channel3-title">More options across stores</h3></div><span>Powered by <b>Channel3</b></span></div>
+          <div class="channel3-grid" id="channel3-grid"></div>
+        </section>
         <div class="collection-footer"><span>Small collection. Better choices.</span><button id="see-all" type="button">See all finds <span>→</span></button></div>
       </section>
     </section>
